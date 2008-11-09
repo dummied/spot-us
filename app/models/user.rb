@@ -33,7 +33,9 @@
 #  fact_check_interest       :boolean(1)      not null
 #  status                    :string(255)     default("active")
 #  organization_name         :string(255)     
-#  established_year          :string(255)     
+#  established_year          :string(255) 
+#  pw_needs_update           :boolean(1)      not null
+#  profile_needs_update      :boolean(1)      not null    
 #
 
 require 'digest/sha1'
@@ -75,8 +77,11 @@ class User < ActiveRecord::Base
     :if => lambda {|user| user.donation_amounts_changed? }
   before_save :encrypt_password
   before_validation_on_create :generate_password, :set_default_location
-
-  after_create :deliver_signup_notification
+  
+  before_update :if_pw_changed
+  after_create :deliver_signup_notification 
+  before_create :set_flags   
+  before_update :update_flags
   after_update :update_donation_amounts,
     :if => lambda {|user| user.donation_amounts_changed? }
 
@@ -99,7 +104,7 @@ class User < ActiveRecord::Base
     :established_year
   named_scope :fact_checkers, :conditions => {:fact_check_interest => true}
   named_scope :approved_news_orgs, :conditions => {:status => 'approved'}
-  named_scope :unapproved_news_orgs, :conditions => {:status => 'needs_approval'}
+  named_scope :unapproved_news_orgs, :conditions => {:status => 'needs_approval'} 
 
   def citizen?
     self.is_a? Citizen
@@ -170,6 +175,14 @@ class User < ActiveRecord::Base
 
   def amount_donated_to(pitch)
     pitch.donations.find_all_by_user_id(id).map(&:amount_in_cents).sum.to_dollars
+  end             
+  
+  def balance
+    credits.map(&:amount_in_cents).sum - donations.unpaid.map(&:amount_in_cents).sum
+  end
+  
+  def overdrawn?
+    balance < 0
   end
 
   # Encrypts the password with the user salt
@@ -179,8 +192,8 @@ class User < ActiveRecord::Base
 
   def reset_password!
     self.password = nil
-    generate_password
-    save!
+    generate_password 
+    save!             
     Mailer.deliver_password_reset_notification(self)
   end
 
@@ -244,7 +257,45 @@ class User < ActiveRecord::Base
     pledges.exists?(:tip_id => tip.id )
   end
 
-  protected
+  protected      
+  
+  def if_pw_changed
+    if crypted_password_changed?
+      self.pw_needs_update = 0 
+    end     
+  end    
+  
+  def set_flags
+    self.profile_needs_update = 1
+  end
+  
+  def update_flags 
+    if self.profile_needs_update?
+      profile_fields_to_check = [
+        self.about_you_changed?, 
+        self.photo_file_name_changed?,
+        self.website_changed?,
+        self.address1_changed? 
+      ] 
+      if profile_fields_to_check.detect{|u| u == true}
+        self.profile_needs_update = 0
+      end
+    end  
+    
+    if self.hide_optional_msg?
+       fields_to_check = [
+        self.profile_needs_update_changed?,
+        self.pw_needs_update_changed?
+       ]                              
+       if fields_to_check.detect{|u| u == true}
+         if (self.profile_needs_update_change && self.profile_needs_update_change[1] == true) || 
+            (self.pw_needs_update_change && self.pw_needs_update_change[1] == true)
+           self.hide_optional_msg = 0
+         end
+       end
+    end
+    
+  end
 
   def encrypt_password
     return if password.blank?
@@ -257,9 +308,14 @@ class User < ActiveRecord::Base
   end
 
   def generate_password
-    chars = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a - %w(l o 0 1 i I L)
+    chars = ('a'..'z').to_a + ('A'..'Z').to_a + ('0'..'9').to_a - %w(l o 0 1 i I L) 
+    if self.password
+      self.pw_needs_update = 0 
+    else
+      self.pw_needs_update = 1
+    end
     self.password ||= (1..6).collect { chars[rand(chars.size)] }.join
-    self.password_confirmation = password
+    self.password_confirmation = password 
   end
   
   def deliver_signup_notification

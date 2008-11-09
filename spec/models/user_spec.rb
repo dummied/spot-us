@@ -17,6 +17,7 @@ describe User do
   table_has_columns(User, :boolean,  "notify_pitches")
   table_has_columns(User, :boolean,  "notify_stories")
   table_has_columns(User, :boolean,  "notify_spotus_news")
+  table_has_columns(User, :boolean,  "pw_needs_update")
 
   describe "creating" do
     it "is creatable by guest" do
@@ -434,5 +435,151 @@ describe User do
     it "should know that the user hasn't donated to that pitch" do
       @user.has_donation_for?(@pitch).should be_false
     end
+  end   
+  
+  describe "setting the flag for needing to update a user's password" do
+     before do 
+       @user = User.new
+       @user.email = random_email_address 
+       @user.first_name = 'Billy'
+       @user.last_name = 'Joel'
+       @user.type = 'Citizen'
+       
+       if @user.pw_needs_update?
+         violated "the user shouldn't need to have their password updated by default"
+       end
+     end
+     
+     it "should set the pw_needs_update flag on newly-created user records" do
+       @user.save!
+       @user.pw_needs_update?().should == true
+     end  
+     
+     it "should update the pw_needs_update flag when a user changes his password" do
+        @user.save!
+        @user.pw_needs_update?().should == true
+        
+        @user.password              = "changed"
+        @user.password_confirmation = "changed"
+        @user.save!
+        @user.pw_needs_update?().should == false
+     end   
+     
+     it "should not update the pw_needs_update when a user changes something other than password" do
+       @user.save!
+       @user.pw_needs_update?().should == true
+       
+       @user.last_name = "Dakidd"
+       @user.save!
+       @user.pw_needs_update?().should == true
+     end
+  end   
+  
+  describe "setting and updating the flag for an unfinished profile" do
+    before do 
+      @user = User.new
+      @user.email = random_email_address 
+      @user.first_name = 'Billy'
+      @user.last_name = 'Joel'
+      @user.type = 'Citizen'
+    end                     
+    
+    it "should set the flag when a new user is created" do
+       @user.save!
+       @user.profile_needs_update?().should == true
+    end                                            
+    
+    it "should remove the flag when one of the profile-based fields is changed" do
+      @user.save
+      @user.profile_needs_update?().should == true
+      
+      @user.about_you = "I rock!"
+      @user.save!               
+      @user.profile_needs_update?().should == false
+    end        
+    
+    it "should not clear the flag when a non-profile-based field is changed" do
+      @user.save
+      @user.profile_needs_update?().should == true
+      
+      @user.password = "changed"
+      @user.password_confirmation = "changed"
+      @user.save!
+      @user.profile_needs_update?().should == true
+    end
+  end  
+  
+  describe "checking the balance" do
+    before do
+      @user = Factory(:user)
+      @donation = Factory(:donation, :user => @user, :amount => 5, :status => 'unpaid')
+    end
+    
+    it "should report a negative balance if there are not enough credits to cover" do
+      @user.balance.should < 0
+    end
+    
+    it "should say a user is overdrawn" do
+      @user.overdrawn?().should == true
+    end
+    
+    it "should not say a user is overdrawn if the blance is zero" do
+      @credit = Factory(:credit, :user => @user, :amount => 5)
+      @user.overdrawn?().should == false
+    end
+    
+    it "should not say a user is overdrawn if they have enough credits" do 
+      @donation = Factory(:donation, :user => @user, :amount => 5, :status => 'unpaid')
+      @credit1  = Factory(:credit, :user => @user, :amount => 7)
+      @credit2  = Factory(:credit, :user => @user, :amount => 5)
+      @user.overdrawn?().should == false
+    end      
+  end    
+  
+  describe "hiding the optional messages" do
+     before do
+       @user = User.new
+       @user.email = random_email_address 
+       @user.first_name = 'Billy'
+       @user.last_name = 'Joel'
+       @user.type = 'Citizen'
+     end                     
+     
+     it "should be off by default" do
+       @user.save!
+       @user.hide_optional_msg?().should == false
+     end
+     
+     it "should not switch back on when a condition is met" do
+        @user.save!
+        @user.hide_optional_msg?().should == false
+        
+        @user.hide_optional_msg = 1
+        @user.save!  
+        @user.hide_optional_msg?().should == true
+        
+        @user.profile_needs_update = 0
+        @user.save!
+        @user.hide_optional_msg?().should == true
+     end                                         
+     
+     it "should switch back on when a condition becomes un met" do
+       @user.save!
+       @user.hide_optional_msg?().should == false
+       
+       @user.hide_optional_msg = 1
+       @user.save!
+       
+       @user.profile_needs_update = 0
+       @user.save!       
+       @user.hide_optional_msg?().should == true
+       
+       @user.profile_needs_update = 1
+       @user.save
+       @user.hide_optional_msg?().should == false
+     end
+    
+    
   end
+  
 end

@@ -1,6 +1,4 @@
-class Myspot::SettingsController < ApplicationController
-
-  before_filter :login_required
+class Myspot::SettingsController < Myspot::MyspotController
 
   resources_controller_for :settings,
                            :class     => User,

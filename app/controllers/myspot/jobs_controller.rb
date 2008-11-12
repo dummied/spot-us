@@ -1,7 +1,6 @@
-class Myspot::JobsController < ApplicationController
+class Myspot::JobsController < Myspot::MyspotController
   resources_controller_for :jobs
 
-  before_filter :login_required
   before_filter :assert_reporter
   before_filter :load_collection, :only => [:new]
 

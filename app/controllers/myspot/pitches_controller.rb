@@ -1,5 +1,5 @@
-class Myspot::PitchesController < ApplicationController
-  before_filter :login_required
+class Myspot::PitchesController < Myspot::MyspotController
+
   resources_controller_for :pitches, :only => :index
 
   def accept 

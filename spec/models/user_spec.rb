@@ -523,17 +523,11 @@ describe User do
       @user.overdrawn?().should == true
     end
     
-    it "should not say a user is overdrawn if the blance is zero" do
-      @credit = Factory(:credit, :user => @user, :amount => 5)
+    it "should not say a user is overdrawn if the balance is zero" do
+      @donation.status = "paid"
+      @donation.save!
       @user.overdrawn?().should == false
     end
-    
-    it "should not say a user is overdrawn if they have enough credits" do 
-      @donation = Factory(:donation, :user => @user, :amount => 5, :status => 'unpaid')
-      @credit1  = Factory(:credit, :user => @user, :amount => 7)
-      @credit2  = Factory(:credit, :user => @user, :amount => 5)
-      @user.overdrawn?().should == false
-    end      
   end    
   
   describe "hiding the optional messages" do

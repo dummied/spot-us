@@ -177,8 +177,9 @@ class User < ActiveRecord::Base
     pitch.donations.find_all_by_user_id(id).map(&:amount_in_cents).sum.to_dollars
   end             
   
-  def balance
-    credits.map(&:amount_in_cents).sum - donations.unpaid.map(&:amount_in_cents).sum
+  def balance 
+    return 0 if donations.unpaid.blank?
+    donations.unpaid.map(&:amount_in_cents).sum
   end
   
   def overdrawn?

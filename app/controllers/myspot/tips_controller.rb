@@ -1,5 +1,4 @@
-class Myspot::TipsController < ApplicationController
-  before_filter :login_required
+class Myspot::TipsController < Myspot::MyspotController
   resources_controller_for :tips, :only => :index
 
   private

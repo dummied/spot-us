@@ -6,8 +6,7 @@ module ApplicationHelper
   end
   
   def current_balance
-    return 0 if current_user.donations.unpaid.blank?
-    current_user.donations.unpaid.map(&:amount_in_cents).sum
+    current_user.balance
   end
 
   def topic_check_boxes(resource, model = nil)

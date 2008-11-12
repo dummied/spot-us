@@ -1,6 +1,4 @@
-class Myspot::DonationAmountsController < ApplicationController
-
-  before_filter :login_required
+class Myspot::DonationAmountsController < Myspot::MyspotController
 
   def edit
     @user      = current_user

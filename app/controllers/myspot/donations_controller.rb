@@ -1,5 +1,5 @@
-class Myspot::DonationsController < ApplicationController
-  before_filter :login_required
+class Myspot::DonationsController < Myspot::MyspotController
+
   resources_controller_for :donations, :only => :index
 
   protected

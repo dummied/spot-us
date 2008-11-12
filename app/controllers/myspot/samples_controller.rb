@@ -1,7 +1,6 @@
-class Myspot::SamplesController < ApplicationController
+class Myspot::SamplesController < Myspot::MyspotController
   resources_controller_for :samples
 
-  before_filter :login_required
   before_filter :assert_reporter
   before_filter :load_collection, :only => [:new]
 

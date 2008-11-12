@@ -1,6 +1,4 @@
-class Myspot::ProfilesController < ApplicationController
-
-  before_filter :login_required
+class Myspot::ProfilesController < Myspot::MyspotController
 
   resources_controller_for :profile,
                            :class     => User,

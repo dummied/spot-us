@@ -516,7 +516,7 @@ describe User do
     end
     
     it "should report a negative balance if there are not enough credits to cover" do
-      @user.balance.should < 0
+      @user.balance.should > 0
     end
     
     it "should say a user is overdrawn" do
@@ -525,7 +525,7 @@ describe User do
     
     it "should not say a user is overdrawn if the balance is zero" do
       @donation.status = "paid"
-      @donation.save!
+      @donation.save!    
       @user.overdrawn?().should == false
     end
   end    

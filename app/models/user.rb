@@ -183,7 +183,7 @@ class User < ActiveRecord::Base
   end
   
   def overdrawn?
-    balance < 0
+    balance > 0
   end
 
   # Encrypts the password with the user salt
